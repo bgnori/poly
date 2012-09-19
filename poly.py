@@ -1,6 +1,5 @@
 
 
-
 class ZPoly:
     """
         >>> z1 = ZPoly({0:1})
@@ -11,6 +10,8 @@ class ZPoly:
         1*x^0 + 2*x^1 + 3*x^2
         >>> z1 + z2
         2*x^0 + 2*x^1 + 3*x^2
+        >>> z1 * z2
+        1*x^0 + 2*x^1 + 3*x^2
     """
     def __init__(self, termdict):
         assert isinstance(termdict, dict)
@@ -27,13 +28,23 @@ class ZPoly:
         return ZPoly(t)
 
     def mul(self, other):
-        pass
+        t = {}
+        for sk, sv in self._imp.items():
+            for ok, ov in other._imp.items():
+                k = sk+ok
+                v = t.get(k, 0) + sv * ov
+                if v:
+                    t[k] = v
+        return ZPoly(t)
 
     def __repr__(self):
         return ' + '.join(["%d*x^%d"%(value, key) for key, value in self._imp.items()])
 
     def __add__(self, other):
         return self.add(other)
+
+    def __mul__(self, other):
+        return self.mul(other)
 
     @staticmethod
     def divmod(numerator, denominator):
