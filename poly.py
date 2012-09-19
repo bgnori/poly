@@ -1,4 +1,6 @@
 
+from fractions import Fraction
+import sys
 
 class PairSeq:
     """
@@ -23,6 +25,8 @@ class PairSeq:
 
     def __init__(self, d):
         self.xs = tuple(sorted(d.items(), key=lambda x: x[0]))
+        for x in self.xs:
+            assert len(x) == 2
 
     def get_by_nth(self, n):
         return self.xs[n]
@@ -46,13 +50,16 @@ class PairSeq:
         raise KeyError
 
     def first(self):
-        return self.xs[0][1]
+        return self.xs[0]
 
     def last(self):
-        return self.xs[-1][1]
+        return self.xs[-1]
 
     def items(self):
         return self.xs
+
+    def __len__(self):
+        return len(self.xs)
 
 
 class ZPoly:
@@ -72,24 +79,29 @@ class ZPoly:
         1*x^0 + 2*x^1 + 3*x^2
         >>> z2 * z3
         1*x^1 + 4*x^2 + 7*x^3 + 6*x^4
-        >>> ZPoly.divmod(z2, z1)
-        1*x^0 + 2*x^1 + 3*x^2
 
     """
     def __init__(self, termdict):
         assert isinstance(termdict, dict)
         self._imp = PairSeq(termdict)
-        self._max = max([key for key in termdict])
+        assert self._imp
 
-    def max(self):
-        return self._imp.last()
+    def max_degree(self):
+        return self._imp.last()[0]
 
-    def min(self):
-        return self._imp.first()
+    def max_degree_value(self):
+        return self._imp.last()[1]
+
+    def min_degree(self):
+        return self._imp.first()[0]
+
+    def min_degree_value(self):
+        return self._imp.first()[1]
 
     def add(self, other):
-        m = max(self.max(), other.max())
-        t = {}
+        ''' Nlog(N). bit slow. We can M+N'''
+        m = max(self.max_degree(), other.max_degree())
+        t = {0:0}
         for n in range(0, m+1):
             x = self._imp.get_by_key(n, 0) + other._imp.get_by_key(n, 0)
             if x:
@@ -97,6 +109,7 @@ class ZPoly:
         return ZPoly(t)
 
     def mul(self, other):
+        ''' MN '''
         t = {}
         for sk, sv in self._imp.items():
             for ok, ov in other._imp.items():
@@ -115,13 +128,37 @@ class ZPoly:
     def __mul__(self, other):
         return self.mul(other)
 
-    def _fit(self, other):
-        pass
+    def __eq__(self, other):
+        return False
 
+    def _fit(self, other):
+        assert isinstance(other, ZPoly)
+        deg = other.max_degree() - self.max_degree()
+        if deg >= 0:
+            mag = Fraction(numerator=other.max_degree_value(), denominator=self.max_degree_value())
+            rest = other + ZPoly({deg:-1 * mag}) * self
+        else:
+            mag = Fraction(0)
+            rest = other
+        return (deg, mag), rest
 
     @staticmethod
     def divmod(numerator, denominator):
-        return numerator
+        '''
+            >>> p = ZPoly({0:-1, 2:1})
+            >>> q = ZPoly({0:-1, 1:1})
+            >>> ZPoly.divmod(p, q)
+            (1*x^0 + 1*x^1, 0*x^0)
+        '''
+        assert isinstance(numerator, ZPoly)
+        assert isinstance(denominator, ZPoly)
+        div = ZPoly({0:0})
+        mod = numerator
+        while mod.max_degree() >= denominator.max_degree():
+            x, mod = denominator._fit(mod)
+            assert x and len(x) == 2
+            div += ZPoly(dict((x,)))
+        return div, mod
 
 
 class RPoly:
