@@ -110,13 +110,11 @@ class ZPoly:
 
     def mul(self, other):
         ''' MN '''
-        t = {}
+        t = {0:0}
         for sk, sv in self._imp.items():
             for ok, ov in other._imp.items():
                 k = sk + ok
-                v = t.get(k, 0) + sv * ov
-                if v:
-                    t[k] = v
+                t[k] = t.get(k, 0) + sv * ov
         return ZPoly(t)
 
     def __repr__(self):
